@@ -1,0 +1,9 @@
+package semidirect
+
+sourcedir = src
+
+modules = Main
+
+pkgs = contrib, patricia
+
+opts = "--partial-eval"
