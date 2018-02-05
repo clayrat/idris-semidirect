@@ -9,20 +9,11 @@ interface Monoid m => Action m a where
   act : m -> a -> a
 
 -- coherence-proving machinery  
-VM2M : VerifiedMonoid m => Monoid m
-VM2M = %implementation
-
 A2M : Action m a => Monoid m
 A2M = %implementation
 
-da2va : DistributiveAction m a -> VerifiedAction m a
-da2va dama = %implementation
-
-va2a : VerifiedAction m a -> Action m a
-va2a vama = %implementation
-
-va2vm : VerifiedAction m a -> VerifiedMonoid m
-va2vm vama = %implementation
+VM2M : VerifiedMonoid m => Monoid m
+VM2M = %implementation
 
 a2m : Action m a -> Monoid m
 a2m ama = %implementation
@@ -35,9 +26,20 @@ interface (VerifiedMonoid m, Action m a) => VerifiedAction m a where
   actOp : (x, y : m) -> (z : a) -> act (x <+> y) z = act x (act y z)
   actNeutral : (x : a) -> act (neutral {ty=m}) x = x
 
+va2a : VerifiedAction m a -> Action m a
+va2a vama = %implementation
+
+va2vm : VerifiedAction m a -> VerifiedMonoid m
+va2vm vama = %implementation
+  
 interface (VerifiedMonoid a, VerifiedAction m a) => DistributiveAction m a where
   actDistributes : (x : m) -> (y, z : a) -> act x (y <+> z) = act x y <+> act x z
   actUnitary : (x : m) -> act x (neutral {ty=a}) = neutral {ty=a}
+
+da2va : DistributiveAction m a -> VerifiedAction m a
+da2va dama = %implementation
+
+-- Unit
 
 Semigroup () where
   () <+> () = ()
@@ -64,23 +66,40 @@ VerifiedMonoid a => DistributiveAction () a where
   actDistributes () _ _ = Refl
   actUnitary () = Refl
 
+-- Maybe  
+
 Action m s => Action (Maybe m) s where
   act Nothing  s = s
   act (Just m) s = act m s    
 
--- TODO can't figure out how to force usage of collectJust everywhere  
-{-
+VerifiedSemigroup a => VerifiedSemigroup (Maybe a) using collectJust where
+  semigroupOpIsAssociative Nothing  _        _        = Refl
+  semigroupOpIsAssociative (Just _) Nothing  _        = Refl
+  semigroupOpIsAssociative (Just _) (Just _) Nothing  = Refl
+  semigroupOpIsAssociative (Just x) (Just y) (Just z) = cong $ semigroupOpIsAssociative x y z
+
+-- technically we don't need `VerifiedMonoid a` here but somehow the search is lost without it
+VerifiedMonoid a => VerifiedMonoid (Maybe a) using collectJust where
+  monoidNeutralIsNeutralL Nothing  = Refl
+  monoidNeutralIsNeutralL (Just _) = Refl
+  monoidNeutralIsNeutralR Nothing  = Refl
+  monoidNeutralIsNeutralR (Just _) = Refl
+
 VerifiedAction m s => VerifiedAction (Maybe m) s using collectJust where
+  monoidMCoherence = Refl
   actOp  Nothing  Nothing _ = Refl
-  actOp  Nothing (Just y) z = Refl
-  actOp (Just x)  Nothing z = Refl
-  actOp (Just x) (Just y) z = ?wat
+  actOp  Nothing (Just _) _ = Refl
+  actOp (Just _)  Nothing _ = Refl
+  actOp (Just x) (Just y) z = actOp x y z
   actNeutral z = Refl
 
 DistributiveAction m a => DistributiveAction (Maybe m) a where
-  actDistributes Nothing y z = Refl
+  actDistributes Nothing  _ _ = Refl
   actDistributes (Just x) y z = actDistributes x y z 
--}
+  actUnitary Nothing  = Refl
+  actUnitary (Just x) = actUnitary x
+
+-- Semidirect product 
 
 data Semidirect s m = MkSemi s m
 
