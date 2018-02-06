@@ -106,10 +106,13 @@ data Semidirect s m = MkSemi s m
 (Show s, Show m) => Show (Semidirect s m) where
   show (MkSemi a b) = show a ++ " *| " ++ show b
 
+-- `Semigroup m` is redundant here, but if we remove it, we end up with a double diamond: 
+-- VerifiedAction -> {VerifiedMonoid -> VerifiedSemigroup | Action -> Monoid} -> Semigroup
+-- for which I don't really know a solution
 (Semigroup m, Semigroup s, Action m s) => Semigroup (Semidirect s m) where
   (MkSemi s1 m1) <+> (MkSemi s2 m2) = MkSemi (s1 <+> act m1 s2) (m1 <+> m2) 
 
-(Monoid m, Monoid s, Action m s) => Monoid (Semidirect s m) where
+(Monoid s, Action m s) => Monoid (Semidirect s m) where
   neutral = MkSemi neutral neutral
 
 DistributiveAction m s => VerifiedSemigroup (Semidirect s m) where
@@ -120,9 +123,7 @@ DistributiveAction m s => VerifiedSemigroup (Semidirect s m) where
     rewrite semigroupOpIsAssociative m1 m2 m3 in 
     Refl
 
---                                         /     Action     \
--- we have a diamond here: VerifiedAction <                  > Monoid
---                                         \ VerifiedMonoid /
+-- we have a diamond here: VerifiedAction -> {Action|VerifiedMonoid} -> Monoid
 -- hence the usage of the explicit preorder reasoning syntax and coherence rewrites
 DistributiveAction m s => VerifiedMonoid (Semidirect s m) where
   monoidNeutralIsNeutralL @{da} (MkSemi al ml) = 
