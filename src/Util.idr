@@ -16,13 +16,5 @@ lookup' {n} bitKey t = go t where
                                  then go left
                                  else go right
 
-bitsToHexStr : %static {n : Nat} -> Bits n -> String
-bitsToHexStr {n} (MkBits b) with (nextBytes n)
-  | Z           = b8ToHexString b
-  | S Z         = b16ToHexString b
-  | S (S Z)     = b32ToHexString b
-  | S (S (S Z)) = b64ToHexString b
-  | _ = assert_unreachable
-
 concatMap' : (Foldable t, Monoid m) => (a -> m) -> t a -> m
 concatMap' f = foldr ((flip (<+>)) . f) neutral
